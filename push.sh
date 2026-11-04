@@ -15,7 +15,7 @@ git status --short
 # 2. Stage new features and modifications
 echo ""
 echo "➕ Staging files..."
-git add app/ components/ lib/ package.json push.sh
+git add app/ components/ lib/ tests/ middleware.ts next.config.js package.json push.sh
 
 # 3. Check if there are changes to commit
 if git diff --cached --quiet; then

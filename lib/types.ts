@@ -1,23 +1,23 @@
-export type EnquiryStatus = 
-  | 'New' 
-  | 'Contacted' 
-  | 'Trial Scheduled' 
-  | 'Trial Completed' 
-  | 'Enrolled' 
+export type EnquiryStatus =
+  | 'New'
+  | 'Contacted'
+  | 'Trial Scheduled'
+  | 'Trial Completed'
+  | 'Enrolled'
   | 'Not Interested';
 
-export type TrialStatus = 
-  | 'Registered' 
-  | 'Contacted' 
-  | 'Scheduled' 
-  | 'Attended' 
-  | 'Absent' 
-  | 'Converted' 
+export type TrialStatus =
+  | 'Registered'
+  | 'Contacted'
+  | 'Scheduled'
+  | 'Attended'
+  | 'Absent'
+  | 'Converted'
   | 'Not Converted';
 
 export type StudentStatus = 'Active' | 'Inactive' | 'Trial' | 'Completed';
 export type BatchStatus = 'Active' | 'Inactive' | 'Full';
-export type UserRole = 'ADMIN' | 'TEACHER' | 'STUDENT';
+export type UserRole = 'ADMIN' | 'TEACHER' | 'STUDENT' | 'PARENT';
 
 export interface InstituteSettings {
   name: string;
@@ -136,11 +136,39 @@ export interface Student {
 export interface UserAccount {
   id: string;
   email: string;
+  phone?: string;
   password?: string;
   name: string;
   role: UserRole;
   associatedId?: string;
   createdAt: string;
+}
+
+export interface AuthSession {
+  userId: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  phone?: string;
+  associatedId?: string;
+  authProvider: 'credentials' | 'firebase' | 'otp';
+  expiresAt: number;
+}
+
+export interface RazorpayOrderPayload {
+  studentId: string;
+  studentName: string;
+  parentName?: string;
+  courseTitle: string;
+  grade: string;
+  amount: number; // in INR
+}
+
+export interface RazorpayVerificationPayload {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+  paymentDetails: RazorpayOrderPayload;
 }
 
 export interface AttendanceRecord {
@@ -214,6 +242,7 @@ export interface FeePayment {
   paymentDate: string;
   monthPaidFor: string;
   status: 'SUCCESS' | 'PENDING';
+  notes?: string;
 }
 
 export interface LeaveRequest {

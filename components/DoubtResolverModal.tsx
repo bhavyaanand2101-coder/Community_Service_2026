@@ -44,30 +44,27 @@ export default function DoubtResolverModal({
     setAiLoading(true);
     setAiResponse(null);
 
-    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-    if (apiKey && apiKey !== 'your_google_gemini_api_key') {
-      try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: `You are an expert CBSE/ICSE teacher at Prime Learning Classes for ${studentClass}. Provide a concise step-by-step hint, key formulas, and common pitfalls for this question in ${subject} (${topic}): "${questionText}". Keep the response under 120 words.`
-              }]
-            }]
-          })
-        });
-        const data = await response.json();
-        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (text) {
-          setAiResponse(text);
-          setAiLoading(false);
-          return;
-        }
-      } catch (e) {
-        console.warn('Gemini API call fallback to local tutor model', e);
+    try {
+      // Secure server-side proxy route with rate limiting & sanitization
+      const response = await fetch('/api/ai/doubt-solver', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject,
+          topic,
+          questionText,
+          studentClass,
+        }),
+      });
+
+      const data = await response.json();
+      if (response.ok && data.hint) {
+        setAiResponse(data.hint);
+        setAiLoading(false);
+        return;
       }
+    } catch (e) {
+      console.warn('AI doubt server proxy notice, using local solver:', e);
     }
 
     // Smart curriculum-aligned heuristic solver fallback

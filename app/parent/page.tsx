@@ -27,11 +27,15 @@ import { Student, AttendanceRecord, TestResult, FeePayment, PtmBooking } from '@
 import { getWhatsAppLink } from '@/lib/constants';
 
 export default function ParentPortalPage() {
-  const [searchQuery, setSearchQuery] = useState('9810989437');
-  const [activeStudent, setActiveStudent] = useState<Student | null>(() => {
-    return db.getStudentByPhoneOrId('9810989437') || db.getStudents()[0] || null;
-  });
-  const [searchError, setSearchError] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [authStep, setAuthStep] = useState<'PHONE_INPUT' | 'OTP_INPUT'>('PHONE_INPUT');
+  const [authIdentifier, setAuthIdentifier] = useState('9810989437');
+  const [enteredOtp, setEnteredOtp] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [demoOtpHint, setDemoOtpHint] = useState<string | null>(null);
+
+  const [activeStudent, setActiveStudent] = useState<Student | null>(null);
   const [activeTab, setActiveTab] = useState<'attendance' | 'marks' | 'fees' | 'ptm'>('attendance');
   
   // Fee receipt print modal state
@@ -46,25 +50,106 @@ export default function ParentPortalPage() {
   const settings = db.getSettings();
   const allStudents = db.getStudents();
 
-  // Search handler
-  const handleSearch = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    setSearchError('');
-    const found = db.getStudentByPhoneOrId(searchQuery);
-    if (found) {
-      setActiveStudent(found);
-    } else {
-      setSearchError('No student record found matching this phone number or ID. Please verify or contact administration.');
+  // Check existing session on load
+  React.useEffect(() => {
+    fetch('/api/auth/session')
+      .then(res => res.json())
+      .then(data => {
+        if (data.authenticated && data.session) {
+          setIsAuthenticated(true);
+          const studentId = data.session.associatedId;
+          const phone = data.session.phone;
+          const matched = (studentId && db.getStudentById(studentId)) ||
+                          (phone && db.getStudentByPhoneOrId(phone)) ||
+                          db.getStudents()[0];
+          setActiveStudent(matched || null);
+        }
+      })
+      .catch(() => {
+        // Fallback: check localStorage for dev session
+        if (typeof window !== 'undefined') {
+          const storedRole = window.localStorage.getItem('prime_learning_user_role');
+          const storedPhone = window.localStorage.getItem('prime_learning_user_phone');
+          if (storedRole === 'PARENT' || storedRole === 'ADMIN') {
+            setIsAuthenticated(true);
+            const found = (storedPhone && db.getStudentByPhoneOrId(storedPhone)) || db.getStudents()[0];
+            setActiveStudent(found || null);
+          }
+        }
+      });
+  }, []);
+
+  // Request OTP Handler
+  const handleRequestOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    setAuthError(null);
+
+    try {
+      const res = await fetch('/api/auth/parent-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'request-otp',
+          phone: authIdentifier,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to request OTP');
+      }
+
+      setAuthStep('OTP_INPUT');
+      setDemoOtpHint(data.demoOtp || '123456');
+      setAuthLoading(false);
+    } catch (err: any) {
+      setAuthLoading(false);
+      setAuthError(err.message || 'Verification request failed');
     }
   };
 
-  const handleSelectQuickStudent = (phone: string) => {
-    setSearchQuery(phone);
-    const found = db.getStudentByPhoneOrId(phone);
-    if (found) {
-      setActiveStudent(found);
-      setSearchError('');
+  // Verify OTP Handler
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    setAuthError(null);
+
+    try {
+      const res = await fetch('/api/auth/parent-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'verify-otp',
+          phone: authIdentifier,
+          otp: enteredOtp,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Invalid OTP code');
+      }
+
+      setIsAuthenticated(true);
+      const student = db.getStudentById(data.student.id) || db.getStudentByPhoneOrId(authIdentifier);
+      setActiveStudent(student || null);
+      setAuthLoading(false);
+    } catch (err: any) {
+      setAuthLoading(false);
+      setAuthError(err.message || 'OTP verification failed');
     }
+  };
+
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem('prime_learning_user_role');
+      window.localStorage.removeItem('prime_learning_user_phone');
+    }
+    setIsAuthenticated(false);
+    setActiveStudent(null);
+    setAuthStep('PHONE_INPUT');
   };
 
   // Student specific data
@@ -127,79 +212,163 @@ export default function ParentPortalPage() {
                 Child Performance & Attendance Tracker
               </h1>
               <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl">
-                No password required. Enter your registered mobile number to check attendance, view test marks, book PTM slots, and download official fee receipts.
+                {isAuthenticated
+                  ? `Authenticated session active for ${activeStudent?.parentName || 'Parent'}. Review your child's live academic records below.`
+                  : 'Authentication required. Enter your registered mobile number or email to receive a secure OTP code.'}
               </p>
             </div>
 
             <div className="flex items-center space-x-3 shrink-0">
+              {isAuthenticated ? (
+                <button
+                  onClick={handleLogout}
+                  className="inline-flex items-center px-4 py-2 rounded-xl text-xs font-bold text-rose-300 hover:text-white bg-rose-950/60 border border-rose-800 transition"
+                >
+                  Lock Portal & Sign Out
+                </button>
+              ) : (
+                <Link
+                  href="/login?role=PARENT"
+                  className="inline-flex items-center px-4 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow transition"
+                >
+                  Full Portal Sign In
+                </Link>
+              )}
               <Link
                 href="/impact"
                 className="inline-flex items-center px-4 py-2 rounded-xl text-xs font-bold text-slate-300 hover:text-white bg-slate-800 border border-slate-700 transition"
               >
                 Community Impact
               </Link>
-              <Link
-                href="/marketing"
-                className="inline-flex items-center px-4 py-2 rounded-xl text-xs font-bold text-white bg-prime-orange hover:bg-prime-orange-hover shadow transition"
-              >
-                Marketing Kit
-              </Link>
             </div>
           </div>
 
-          {/* Quick Lookup Bar */}
-          <div className="bg-slate-800/90 rounded-2xl p-4 sm:p-5 border border-slate-700 shadow-xl max-w-3xl space-y-3">
-            <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2">
-              <div className="relative flex-grow">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Enter 10-Digit Mobile Number (e.g. 9810989437) or Student ID..."
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-prime-orange text-xs sm:text-sm"
-                />
+          {/* Verification Card (when unauthenticated) */}
+          {!isAuthenticated ? (
+            <div className="bg-slate-800/90 rounded-3xl p-6 sm:p-8 border border-slate-700 shadow-2xl max-w-xl space-y-4">
+              <div className="flex items-center space-x-2 text-indigo-400 font-bold text-xs uppercase tracking-wider">
+                <ShieldCheck className="w-4 h-4" />
+                <span>Parent Two-Factor Verification</span>
+              </div>
+              <h2 className="text-lg font-black text-white">
+                {authStep === 'PHONE_INPUT' ? 'Enter Registered Mobile Number or Email' : 'Enter 6-Digit Verification Code (OTP)'}
+              </h2>
+
+              {authError && (
+                <div className="p-3 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-semibold flex items-center space-x-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>{authError}</span>
+                </div>
+              )}
+
+              {authStep === 'PHONE_INPUT' ? (
+                <form onSubmit={handleRequestOtp} className="space-y-4">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                      Registered Parent Phone / Email
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={authIdentifier}
+                      onChange={(e) => setAuthIdentifier(e.target.value)}
+                      placeholder="e.g. 9810989437 or parent@primelearning.edu.in"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-prime-orange text-sm font-medium"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setAuthIdentifier('9810989437')}
+                      className="text-[11px] text-slate-400 hover:text-white underline font-medium"
+                    >
+                      Use Demo Number (9810989437)
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={authLoading}
+                      className="px-6 py-2.5 rounded-xl bg-prime-orange hover:bg-prime-orange-hover text-white font-bold text-xs sm:text-sm transition shadow shrink-0 disabled:opacity-50"
+                    >
+                      {authLoading ? 'Sending Code...' : 'Send Verification OTP'}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <form onSubmit={handleVerifyOtp} className="space-y-4">
+                  {demoOtpHint && (
+                    <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-medium flex items-center justify-between">
+                      <span>⚡ Demo Verification Code:</span>
+                      <strong className="tracking-widest font-mono text-sm bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-500/40">
+                        {demoOtpHint}
+                      </strong>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                      6-Digit OTP Code
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      required
+                      value={enteredOtp}
+                      onChange={(e) => setEnteredOtp(e.target.value)}
+                      placeholder="Enter 6-digit OTP (or 123456)"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-center tracking-widest font-mono text-lg font-bold"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setAuthStep('PHONE_INPUT')}
+                      className="text-[11px] text-slate-400 hover:text-white underline font-medium"
+                    >
+                      Change Phone Number
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={authLoading}
+                      className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm transition shadow shrink-0 disabled:opacity-50"
+                    >
+                      {authLoading ? 'Verifying...' : 'Verify & Unlock Portal'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          ) : (
+            /* Verified Parent Session Pill */
+            <div className="bg-slate-800/80 rounded-2xl p-4 border border-slate-700 shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 max-w-3xl">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500 flex items-center justify-center text-emerald-400 font-bold">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                    Verified Parent Session
+                  </div>
+                  <div className="text-sm font-extrabold text-white">
+                    {activeStudent?.parentName || 'Parent Guardian'} • Tracking {activeStudent?.studentName}
+                  </div>
+                </div>
               </div>
               <button
-                type="submit"
-                className="px-6 py-2.5 rounded-xl bg-prime-orange hover:bg-prime-orange-hover text-white font-bold text-xs sm:text-sm transition shadow shrink-0"
+                onClick={handleLogout}
+                className="text-xs font-bold text-slate-400 hover:text-white bg-slate-700/60 px-3 py-1.5 rounded-lg border border-slate-600 transition"
               >
-                Track Student
+                Sign Out
               </button>
-            </form>
-
-            {/* Quick Demo Student Pills */}
-            <div className="flex flex-wrap items-center gap-2 pt-1">
-              <span className="text-[11px] text-slate-400 font-semibold">Quick Demo Profiles:</span>
-              {allStudents.slice(0, 3).map((st) => (
-                <button
-                  key={st.id}
-                  type="button"
-                  onClick={() => handleSelectQuickStudent(st.phone)}
-                  className={`text-[11px] px-2.5 py-1 rounded-lg border transition font-medium ${
-                    activeStudent?.id === st.id
-                      ? 'bg-prime-orange/20 border-prime-orange text-prime-orange'
-                      : 'bg-slate-900/60 border-slate-700 text-slate-300 hover:border-slate-500'
-                  }`}
-                >
-                  {st.studentName} ({st.grade})
-                </button>
-              ))}
             </div>
-
-            {searchError && (
-              <div className="text-xs text-rose-400 font-semibold flex items-center space-x-1.5 pt-1">
-                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                <span>{searchError}</span>
-              </div>
-            )}
-          </div>
+          )}
 
         </div>
       </section>
 
       {/* 2. Main Parent Portal Dashboard */}
-      {activeStudent ? (
+      {isAuthenticated && activeStudent ? (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
           
           {/* Active Student Overview Header Card */}

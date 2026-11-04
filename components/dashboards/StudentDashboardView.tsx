@@ -38,20 +38,47 @@ export default function StudentDashboardView() {
   const [showSyllabusTracker, setShowSyllabusTracker] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  const [currentUserSession, setCurrentUserSession] = useState<{ id?: string; email?: string; associatedId?: string; role?: string } | null>(null);
+
   React.useEffect(() => {
     setMounted(true);
+    fetch('/api/auth/session')
+      .then(res => res.json())
+      .then(data => {
+        if (data.authenticated && data.session) {
+          setCurrentUserSession(data.session);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const students = mounted ? db.getStudents() : [];
-  const student = students[0] || {
-    id: 'std-1',
-    studentName: 'Bhavya Anand',
-    parentName: 'Rashmi Anand',
-    grade: 'Class 10',
-    subjects: ['Mathematics'],
-    batchName: 'Batch M10-A (Class 10 Math)',
-    teacherName: 'Praveen Gandhi',
-  };
+  const student = React.useMemo(() => {
+    if (currentUserSession?.associatedId) {
+      const found = db.getStudentById(currentUserSession.associatedId);
+      if (found) return found;
+    }
+    if (currentUserSession?.email) {
+      const found = students.find(s => s.email?.toLowerCase() === currentUserSession.email?.toLowerCase());
+      if (found) return found;
+    }
+    if (typeof window !== 'undefined') {
+      const storedId = window.localStorage.getItem('prime_learning_user_associated_id');
+      if (storedId) {
+        const found = db.getStudentById(storedId);
+        if (found) return found;
+      }
+    }
+    return students[0] || {
+      id: 'std-1',
+      studentName: 'Bhavya Anand',
+      parentName: 'Rashmi Anand',
+      grade: 'Class 10',
+      subjects: ['Mathematics'],
+      batchName: 'Batch M10-A (Class 10 Math)',
+      teacherName: 'Praveen Gandhi',
+    };
+  }, [students, currentUserSession]);
 
   const attendance = db.getAttendance().filter(a => a.studentId === student.id);
   const testResults = db.getTestResults().filter(t => t.studentId === student.id);

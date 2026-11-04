@@ -1,4 +1,7 @@
+-- ==============================================================================
 -- PRIME LEARNING COACHING INSTITUTE DATABASE SCHEMA FOR SUPABASE / POSTGRESQL
+-- Production Hardened Schema with Row Level Security (RLS) & Role-Based Policies
+-- ==============================================================================
 
 -- Enable UUID Extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -21,13 +24,15 @@ CREATE TABLE IF NOT EXISTS public.settings (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 2. USERS & ROLES TABLE
+-- 2. USERS & ROLES TABLE (Admin, Teacher, Student, Parent)
 CREATE TABLE IF NOT EXISTS public.users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     email VARCHAR(255) UNIQUE NOT NULL,
     full_name VARCHAR(255) NOT NULL,
-    role VARCHAR(50) NOT NULL CHECK (role IN ('ADMIN', 'TEACHER', 'STUDENT')),
+    role VARCHAR(50) NOT NULL CHECK (role IN ('ADMIN', 'TEACHER', 'STUDENT', 'PARENT')),
     phone VARCHAR(50),
+    associated_id VARCHAR(100),
+    auth_provider VARCHAR(50) DEFAULT 'credentials',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -58,6 +63,8 @@ CREATE TABLE IF NOT EXISTS public.teachers (
     achievements TEXT[],
     photo_url TEXT,
     bio TEXT,
+    email VARCHAR(255),
+    phone VARCHAR(50),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -117,6 +124,7 @@ CREATE TABLE IF NOT EXISTS public.students (
     subjects TEXT[],
     phone VARCHAR(50) NOT NULL,
     whatsapp VARCHAR(50),
+    email VARCHAR(255),
     batch_id UUID REFERENCES public.batches(id) ON DELETE SET NULL,
     teacher_name VARCHAR(255),
     admission_date DATE DEFAULT CURRENT_DATE,
@@ -131,6 +139,8 @@ CREATE TABLE IF NOT EXISTS public.attendance (
     batch_id UUID REFERENCES public.batches(id) ON DELETE CASCADE,
     date DATE DEFAULT CURRENT_DATE,
     status VARCHAR(20) NOT NULL CHECK (status IN ('Present', 'Absent')),
+    check_in_method VARCHAR(50) DEFAULT 'MANUAL',
+    check_in_time VARCHAR(50),
     remarks TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -150,7 +160,80 @@ CREATE TABLE IF NOT EXISTS public.test_results (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 11. ANNOUNCEMENTS TABLE
+-- 11. FEE PAYMENTS TABLE
+CREATE TABLE IF NOT EXISTS public.fee_payments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    student_id UUID REFERENCES public.students(id) ON DELETE CASCADE,
+    student_name VARCHAR(255) NOT NULL,
+    parent_name VARCHAR(255),
+    course_title VARCHAR(255) NOT NULL,
+    grade VARCHAR(100) NOT NULL,
+    amount VARCHAR(50) NOT NULL,
+    payment_method VARCHAR(50) DEFAULT 'UPI',
+    month_paid_for VARCHAR(100) NOT NULL,
+    status VARCHAR(50) DEFAULT 'PAID' CHECK (status IN ('PAID', 'PENDING', 'OVERDUE')),
+    transaction_id VARCHAR(255),
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 12. EXPENSES TABLE (Admin Financial Accounting)
+CREATE TABLE IF NOT EXISTS public.expenses (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    title VARCHAR(255) NOT NULL,
+    category VARCHAR(100) NOT NULL CHECK (category IN ('Rent', 'Electricity & Utilities', 'Printing & Xerox', 'Study Material & Books', 'Faculty Stipend', 'Software & Tech', 'Refreshments', 'Maintenance', 'Other')),
+    amount NUMERIC(10,2) NOT NULL,
+    date DATE DEFAULT CURRENT_DATE,
+    paid_to VARCHAR(255),
+    payment_method VARCHAR(50) DEFAULT 'UPI',
+    receipt_ref VARCHAR(255),
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 13. PTM BOOKINGS TABLE
+CREATE TABLE IF NOT EXISTS public.ptm_bookings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    student_id UUID REFERENCES public.students(id) ON DELETE CASCADE,
+    student_name VARCHAR(255) NOT NULL,
+    parent_name VARCHAR(255) NOT NULL,
+    parent_phone VARCHAR(50) NOT NULL,
+    preferred_teacher VARCHAR(255) NOT NULL,
+    preferred_slot VARCHAR(255) NOT NULL,
+    concern_area TEXT,
+    status VARCHAR(50) DEFAULT 'CONFIRMED' CHECK (status IN ('PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 14. LEAVE REQUESTS TABLE
+CREATE TABLE IF NOT EXISTS public.leave_requests (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    student_id UUID REFERENCES public.students(id) ON DELETE CASCADE,
+    student_name VARCHAR(255) NOT NULL,
+    grade VARCHAR(100) NOT NULL,
+    parent_phone VARCHAR(50) NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    reason TEXT NOT NULL,
+    status VARCHAR(50) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 15. STUDENT DOUBTS TABLE
+CREATE TABLE IF NOT EXISTS public.student_doubts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    student_id UUID REFERENCES public.students(id) ON DELETE CASCADE,
+    student_name VARCHAR(255) NOT NULL,
+    subject VARCHAR(100) NOT NULL,
+    topic VARCHAR(255) NOT NULL,
+    question TEXT NOT NULL,
+    ai_hint TEXT,
+    teacher_reply TEXT,
+    status VARCHAR(50) DEFAULT 'OPEN' CHECK (status IN ('OPEN', 'AI_ANSWERED', 'RESOLVED')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 16. ANNOUNCEMENTS TABLE
 CREATE TABLE IF NOT EXISTS public.announcements (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     title VARCHAR(255) NOT NULL,
@@ -160,7 +243,7 @@ CREATE TABLE IF NOT EXISTS public.announcements (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 12. STUDY MATERIALS TABLE
+-- 17. STUDY MATERIALS TABLE
 CREATE TABLE IF NOT EXISTS public.study_materials (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     title VARCHAR(255) NOT NULL,
@@ -171,18 +254,124 @@ CREATE TABLE IF NOT EXISTS public.study_materials (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- ROW LEVEL SECURITY POLICIES
+-- 18. AUDIT LOGS TABLE
+CREATE TABLE IF NOT EXISTS public.audit_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID,
+    actor_email VARCHAR(255),
+    action VARCHAR(255) NOT NULL,
+    resource_type VARCHAR(100) NOT NULL,
+    resource_id VARCHAR(100),
+    ip_address VARCHAR(100),
+    metadata JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ==============================================================================
+-- INDEXES FOR PERFORMANCE & FAST LOOKUPS
+-- ==============================================================================
+CREATE INDEX IF NOT EXISTS idx_students_phone ON public.students(phone);
+CREATE INDEX IF NOT EXISTS idx_students_batch ON public.students(batch_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_student_date ON public.attendance(student_id, date);
+CREATE INDEX IF NOT EXISTS idx_test_results_student ON public.test_results(student_id);
+CREATE INDEX IF NOT EXISTS idx_fee_payments_student ON public.fee_payments(student_id);
+CREATE INDEX IF NOT EXISTS idx_users_email ON public.users(email);
+CREATE INDEX IF NOT EXISTS idx_ptm_student ON public.ptm_bookings(student_id);
+
+-- ==============================================================================
+-- ROW LEVEL SECURITY (RLS) POLICIES
+-- ==============================================================================
+
+-- Enable RLS across EVERY table in public schema
 ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.courses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.teachers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.batches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.enquiries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.trial_registrations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.attendance ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.test_results ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.fee_payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ptm_bookings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.leave_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.student_doubts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.study_materials ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 
--- Allow public read access to settings, courses, teachers
-CREATE POLICY "Allow public read settings" ON public.settings FOR SELECT USING (true);
-CREATE POLICY "Allow public read courses" ON public.courses FOR SELECT USING (true);
-CREATE POLICY "Allow public read teachers" ON public.teachers FOR SELECT USING (true);
+-- 1. Public Read Policies for Marketing & Institutional Pages
+CREATE POLICY "Public read settings" ON public.settings FOR SELECT USING (true);
+CREATE POLICY "Public read courses" ON public.courses FOR SELECT USING (true);
+CREATE POLICY "Public read teachers" ON public.teachers FOR SELECT USING (true);
+CREATE POLICY "Public read announcements" ON public.announcements FOR SELECT USING (true);
+CREATE POLICY "Public read materials" ON public.study_materials FOR SELECT USING (true);
 
--- Allow public insert on enquiries and trial registrations
-CREATE POLICY "Allow public insert enquiries" ON public.enquiries FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow public insert trial registrations" ON public.trial_registrations FOR INSERT WITH CHECK (true);
+-- 2. Public Insert Policies for Leads & Trials
+CREATE POLICY "Public insert enquiries" ON public.enquiries FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public insert trial registrations" ON public.trial_registrations FOR INSERT WITH CHECK (true);
+
+-- 3. Admin Full Access Policy (Service Role & Authenticated Admins)
+CREATE POLICY "Admin full access settings" ON public.settings FOR ALL USING (auth.jwt()->>'role' = 'ADMIN');
+CREATE POLICY "Admin full access users" ON public.users FOR ALL USING (auth.jwt()->>'role' = 'ADMIN');
+CREATE POLICY "Admin full access courses" ON public.courses FOR ALL USING (auth.jwt()->>'role' = 'ADMIN');
+CREATE POLICY "Admin full access teachers" ON public.teachers FOR ALL USING (auth.jwt()->>'role' = 'ADMIN');
+CREATE POLICY "Admin full access batches" ON public.batches FOR ALL USING (auth.jwt()->>'role' = 'ADMIN');
+CREATE POLICY "Admin full access enquiries" ON public.enquiries FOR ALL USING (auth.jwt()->>'role' = 'ADMIN');
+CREATE POLICY "Admin full access trials" ON public.trial_registrations FOR ALL USING (auth.jwt()->>'role' = 'ADMIN');
+CREATE POLICY "Admin full access students" ON public.students FOR ALL USING (auth.jwt()->>'role' = 'ADMIN');
+CREATE POLICY "Admin full access attendance" ON public.attendance FOR ALL USING (auth.jwt()->>'role' = 'ADMIN');
+CREATE POLICY "Admin full access test_results" ON public.test_results FOR ALL USING (auth.jwt()->>'role' = 'ADMIN');
+CREATE POLICY "Admin full access fee_payments" ON public.fee_payments FOR ALL USING (auth.jwt()->>'role' = 'ADMIN');
+CREATE POLICY "Admin full access expenses" ON public.expenses FOR ALL USING (auth.jwt()->>'role' = 'ADMIN');
+CREATE POLICY "Admin full access ptm_bookings" ON public.ptm_bookings FOR ALL USING (auth.jwt()->>'role' = 'ADMIN');
+CREATE POLICY "Admin full access leave_requests" ON public.leave_requests FOR ALL USING (auth.jwt()->>'role' = 'ADMIN');
+CREATE POLICY "Admin full access student_doubts" ON public.student_doubts FOR ALL USING (auth.jwt()->>'role' = 'ADMIN');
+CREATE POLICY "Admin full access audit_logs" ON public.audit_logs FOR ALL USING (auth.jwt()->>'role' = 'ADMIN');
+
+-- 4. Student RLS Policies (Students can strictly view their own records)
+CREATE POLICY "Student read own profile" ON public.students FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Student read own attendance" ON public.attendance FOR SELECT USING (auth.uid() = student_id);
+CREATE POLICY "Student read own marks" ON public.test_results FOR SELECT USING (auth.uid() = student_id);
+CREATE POLICY "Student read own fees" ON public.fee_payments FOR SELECT USING (auth.uid() = student_id);
+CREATE POLICY "Student manage own doubts" ON public.student_doubts FOR ALL USING (auth.uid() = student_id);
+CREATE POLICY "Student submit leave" ON public.leave_requests FOR INSERT WITH CHECK (auth.uid() = student_id);
+
+-- 5. Parent RLS Policies (Parents can view only their registered student's records by phone)
+CREATE POLICY "Parent read child attendance" ON public.attendance FOR SELECT USING (
+    EXISTS (SELECT 1 FROM public.students WHERE students.id = attendance.student_id AND students.phone = (auth.jwt()->>'phone'))
+);
+CREATE POLICY "Parent read child marks" ON public.test_results FOR SELECT USING (
+    EXISTS (SELECT 1 FROM public.students WHERE students.id = test_results.student_id AND students.phone = (auth.jwt()->>'phone'))
+);
+CREATE POLICY "Parent read child fees" ON public.fee_payments FOR SELECT USING (
+    EXISTS (SELECT 1 FROM public.students WHERE students.id = fee_payments.student_id AND students.phone = (auth.jwt()->>'phone'))
+);
+CREATE POLICY "Parent manage ptm" ON public.ptm_bookings FOR ALL USING (
+    parent_phone = (auth.jwt()->>'phone')
+);
+
+-- ==============================================================================
+-- 6. PRIVATE STORAGE BUCKET SECURITY RULES (Make storage buckets private)
+-- ==============================================================================
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('student-documents', 'student-documents', false),
+       ('fee-receipts', 'fee-receipts', false),
+       ('study-materials', 'study-materials', false)
+ON CONFLICT (id) DO UPDATE SET public = false;
+
+-- Storage RLS: Restrict file uploads to verified faculty and admins
+CREATE POLICY "Admin & Teacher upload files" ON storage.objects FOR INSERT WITH CHECK (
+  bucket_id IN ('student-documents', 'fee-receipts', 'study-materials') AND
+  (auth.jwt()->>'role' IN ('ADMIN', 'TEACHER'))
+);
+
+-- Storage RLS: Authorized private file reads only
+CREATE POLICY "Authorized read private files" ON storage.objects FOR SELECT USING (
+  bucket_id = 'study-materials' OR 
+  (auth.jwt()->>'role' = 'ADMIN') OR
+  (auth.uid()::text = (storage.foldername(name))[1])
+);
+

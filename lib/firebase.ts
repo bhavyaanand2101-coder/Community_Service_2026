@@ -3,8 +3,8 @@ import { getAnalytics, isSupported, Analytics } from "firebase/analytics";
 import { getAuth } from "firebase/auth";
 
 /**
- * Cryptographic Runtime Credential Decoder
- * Prevents plaintext exposure of API credentials in source repositories & client code.
+ * Firebase Client SDK Initialization
+ * Reads credentials from environment variables, with project evaluation fallbacks.
  */
 function decodeCredential(encodedStr: string): string {
   if (typeof window !== "undefined" && window.atob) {

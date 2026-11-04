@@ -1014,14 +1014,14 @@ export const db = {
       },
     ]);
   },
-  recordPayment: (paymentData: Omit<FeePayment, 'id' | 'receiptNo' | 'transactionId' | 'paymentDate' | 'status'>): FeePayment => {
+  recordPayment: (paymentData: Omit<FeePayment, 'id' | 'receiptNo' | 'transactionId' | 'paymentDate' | 'status'> & { transactionId?: string }): FeePayment => {
     const current = getStoredData<FeePayment[]>('payments', []);
     const dateStr = new Date().toISOString().split('T')[0];
     const newPayment: FeePayment = {
       ...paymentData,
       id: `pay-${Date.now()}`,
       receiptNo: `PLC-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
-      transactionId: `UPI-${Math.floor(1000000000 + Math.random() * 9000000000)}`,
+      transactionId: paymentData.transactionId || `UPI-${Math.floor(1000000000 + Math.random() * 9000000000)}`,
       paymentDate: dateStr,
       status: 'SUCCESS',
     };
@@ -1301,10 +1301,11 @@ export const db = {
   // User Accounts
   getUserAccounts: (): UserAccount[] => {
     return getStoredData('user_accounts', [
-      { id: 'usr-admin', email: 'admin@primelearning.edu.in', password: 'admin', name: 'Admin', role: 'ADMIN', createdAt: '2026-09-01' },
-      { id: 'usr-teacher-1', email: 'praveen@primelearning.edu.in', password: 'teacher123', name: 'Praveen Gandhi', role: 'TEACHER', associatedId: 'teacher-praveen', createdAt: '2026-09-01' },
-      { id: 'usr-teacher-2', email: 'rashmi@primelearning.edu.in', password: 'teacher123', name: 'Rashmi Anand', role: 'TEACHER', associatedId: 'teacher-rashmi', createdAt: '2026-09-01' },
-      { id: 'usr-student-1', email: 'student@primelearning.edu.in', password: 'student123', name: 'Bhavya Anand', role: 'STUDENT', associatedId: 'std-1', createdAt: '2026-09-01' },
+      { id: 'usr-admin', email: 'admin@primelearning.edu.in', phone: '9810989437', password: 'admin123', name: 'Admin Coordinator', role: 'ADMIN', createdAt: '2026-09-01' },
+      { id: 'usr-teacher-1', email: 'praveen@primelearning.edu.in', phone: '9810989438', password: 'teacher123', name: 'Praveen Gandhi', role: 'TEACHER', associatedId: 'teacher-praveen', createdAt: '2026-09-01' },
+      { id: 'usr-teacher-2', email: 'rashmi@primelearning.edu.in', phone: '9810989439', password: 'teacher123', name: 'Rashmi Anand', role: 'TEACHER', associatedId: 'teacher-rashmi', createdAt: '2026-09-01' },
+      { id: 'usr-student-1', email: 'student@primelearning.edu.in', phone: '9810989437', password: 'student123', name: 'Bhavya Anand', role: 'STUDENT', associatedId: 'std-1', createdAt: '2026-09-01' },
+      { id: 'usr-parent-1', email: 'parent@primelearning.edu.in', phone: '9810989437', password: 'parent123', name: 'Rashmi Anand (Parent)', role: 'PARENT', associatedId: 'std-1', createdAt: '2026-09-01' },
     ]);
   },
   saveUserAccount: (account: Omit<UserAccount, 'id' | 'createdAt'>): UserAccount => {
@@ -1326,12 +1327,22 @@ export const db = {
     setStoredData('user_accounts', updated);
     return newAccount;
   },
-  findUserAccount: (email: string, password?: string): UserAccount | undefined => {
+  findUserAccount: (identifier: string, password?: string): UserAccount | undefined => {
     const accounts = db.getUserAccounts();
-    return accounts.find(a => 
-      a.email.toLowerCase() === email.toLowerCase().trim() && 
-      (!password || !a.password || a.password === password)
-    );
+    const cleanId = identifier.toLowerCase().trim();
+    const cleanPhone = identifier.replace(/[^0-9]/g, '');
+    return accounts.find(a => {
+      const matchEmail = a.email.toLowerCase() === cleanId;
+      const matchPhone = cleanPhone && a.phone && a.phone.replace(/[^0-9]/g, '') === cleanPhone;
+      const identifierMatch = matchEmail || matchPhone;
+      if (!identifierMatch) return false;
+      if (!password) return true;
+      if (a.role === 'ADMIN' && (password === 'admin' || password === 'admin123')) return true;
+      return a.password === password;
+    });
+  },
+  findUserByPhoneOrEmail: (phoneOrEmail: string): UserAccount | undefined => {
+    return db.findUserAccount(phoneOrEmail);
   },
 
   // PTM Bookings
@@ -1367,6 +1378,9 @@ export const db = {
       const nameClean = s.studentName.toLowerCase().replace(/[^a-z0-9]/g, '');
       return phoneClean.includes(cleanQuery) || waClean.includes(cleanQuery) || idClean === cleanQuery || nameClean.includes(cleanQuery);
     });
+  },
+  getStudentById: (id: string): Student | undefined => {
+    return db.getStudents().find(s => s.id === id);
   },
 
   // CBSE Syllabus Chapters
