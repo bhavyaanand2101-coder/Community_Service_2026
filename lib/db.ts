@@ -1327,6 +1327,82 @@ export const db = {
     setStoredData('user_accounts', updated);
     return newAccount;
   },
+  deleteUserAccount: (id: string): void => {
+    const current = db.getUserAccounts();
+    const updated = current.filter(u => u.id !== id);
+    setStoredData('user_accounts', updated);
+  },
+  updateUserPassword: (id: string, newPass: string): boolean => {
+    const current = db.getUserAccounts();
+    const index = current.findIndex(u => u.id === id);
+    if (index >= 0) {
+      current[index].password = newPass;
+      setStoredData('user_accounts', [...current]);
+      return true;
+    }
+    return false;
+  },
+  exportCompleteDatabase: (): Record<string, any> => {
+    return {
+      version: '2.0-production',
+      exportedAt: new Date().toISOString(),
+      settings: db.getSettings(),
+      courses: db.getCourses(),
+      teachers: db.getTeachers(),
+      batches: db.getBatches(),
+      enquiries: db.getEnquiries(),
+      trials: db.getTrials(),
+      students: db.getStudents(),
+      attendance: db.getAttendance(),
+      testResults: db.getTestResults(),
+      payments: getStoredData('payments', []),
+      expenses: db.getExpenses(),
+      leaveRequests: getStoredData('leave_requests', []),
+      doubts: db.getDoubts(),
+      announcements: db.getAnnouncements(),
+      materials: db.getStudyMaterials(),
+      userAccounts: db.getUserAccounts(),
+      ptmBookings: db.getPtmBookings(),
+      syllabusChapters: db.getSyllabusChapters(),
+    };
+  },
+  importDatabaseBackup: (backup: Record<string, any>): boolean => {
+    if (!backup || typeof backup !== 'object') return false;
+    try {
+      if (backup.settings) setStoredData('settings', backup.settings);
+      if (backup.courses) setStoredData('courses', backup.courses);
+      if (backup.teachers) setStoredData('teachers', backup.teachers);
+      if (backup.batches) setStoredData('batches', backup.batches);
+      if (backup.enquiries) setStoredData('enquiries', backup.enquiries);
+      if (backup.trials) setStoredData('trials', backup.trials);
+      if (backup.students) setStoredData('students', backup.students);
+      if (backup.attendance) setStoredData('attendance', backup.attendance);
+      if (backup.testResults) setStoredData('test_results', backup.testResults);
+      if (backup.payments) setStoredData('payments', backup.payments);
+      if (backup.expenses) setStoredData('expenses', backup.expenses);
+      if (backup.leaveRequests) setStoredData('leave_requests', backup.leaveRequests);
+      if (backup.doubts) setStoredData('doubts', backup.doubts);
+      if (backup.announcements) setStoredData('announcements', backup.announcements);
+      if (backup.materials) setStoredData('materials', backup.materials);
+      if (backup.userAccounts) setStoredData('user_accounts', backup.userAccounts);
+      if (backup.ptmBookings) setStoredData('ptm_bookings', backup.ptmBookings);
+      if (backup.syllabusChapters) setStoredData('syllabus_chapters', backup.syllabusChapters);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+  resetDatabaseToDefaults: (): void => {
+    const keys = [
+      'settings', 'courses', 'teachers', 'batches', 'enquiries', 'trials',
+      'students', 'attendance', 'test_results', 'payments', 'expenses',
+      'leave_requests', 'doubts', 'announcements', 'materials', 'user_accounts',
+      'ptm_bookings', 'syllabus_chapters', 'study_plans', 'quiz_results'
+    ];
+    if (typeof window !== 'undefined') {
+      keys.forEach(k => window.localStorage.removeItem(STORAGE_PREFIX + k));
+    }
+  },
   findUserAccount: (identifier: string, password?: string): UserAccount | undefined => {
     const accounts = db.getUserAccounts();
     const cleanId = identifier.toLowerCase().trim();
@@ -1524,6 +1600,11 @@ export const addAcademicEvent = db.addAcademicEvent;
 export const getStudyPlans = db.getStudyPlans;
 export const saveStudyPlan = db.saveStudyPlan;
 export const getStudentIdCard = db.getStudentIdCard;
+export const deleteUserAccount = db.deleteUserAccount;
+export const updateUserPassword = db.updateUserPassword;
+export const exportCompleteDatabase = db.exportCompleteDatabase;
+export const importDatabaseBackup = db.importDatabaseBackup;
+export const resetDatabaseToDefaults = db.resetDatabaseToDefaults;
 
 
 

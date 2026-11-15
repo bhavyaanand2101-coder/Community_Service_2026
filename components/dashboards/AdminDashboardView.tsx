@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { 
   Users, MessageSquare, GraduationCap, CheckCircle2, Phone, Calendar, 
   BookOpen, Clock, Settings, Plus, Filter, Search, FileText, BarChart3, Edit, Save, ArrowRight, QrCode, Trash2, X, Bell, Download, CreditCard, HelpCircle, Send, Megaphone,
-  Lock, KeyRound, Mail, Award, Sparkles, IndianRupee, ShieldCheck
+  Lock, KeyRound, Mail, Award, Sparkles, IndianRupee, ShieldCheck, Database
 } from 'lucide-react';
 import { db, getPayments, getLeaveRequests, updateLeaveStatus, getDoubts, replyDoubt, getPendingFeeStudents, getExpenses, addExpense, deleteExpense } from '@/lib/db';
 import { 
@@ -19,10 +19,13 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import QRAttendanceModal from '@/components/QRAttendanceModal';
 import TrialPassModal from '@/components/TrialPassModal';
 import StudentIDCardModal from '@/components/StudentIDCardModal';
+import SecurityAuditTab from '@/components/admin/SecurityAuditTab';
+import UserManagementTab from '@/components/admin/UserManagementTab';
+import BackupRestoreTab from '@/components/admin/BackupRestoreTab';
 
 export default function AdminDashboardView() {
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'enquiries' | 'trials' | 'students' | 'teachers' | 'batches' | 'courses' | 'announcements' | 'materials' | 'attendance' | 'marks' | 'payments' | 'expenses' | 'leaves' | 'doubts' | 'broadcast' | 'settings'
+    'overview' | 'enquiries' | 'trials' | 'students' | 'teachers' | 'batches' | 'courses' | 'announcements' | 'materials' | 'attendance' | 'marks' | 'payments' | 'expenses' | 'leaves' | 'doubts' | 'broadcast' | 'settings' | 'security' | 'users' | 'backup'
   >('overview');
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [selectedTrialForPass, setSelectedTrialForPass] = useState<TrialRegistration | null>(null);
@@ -45,6 +48,7 @@ export default function AdminDashboardView() {
   const [leaveRequests, setLeaveRequestsState] = useState(getLeaveRequests());
   const [doubtsState, setDoubtsState] = useState<StudentDoubt[]>(getDoubts());
   const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
+  const [userAccounts, setUserAccounts] = useState(db.getUserAccounts());
 
   // Expense modal state
   const [addExpenseModal, setAddExpenseModal] = useState(false);
@@ -130,6 +134,7 @@ export default function AdminDashboardView() {
     setLeaveRequestsState(getLeaveRequests());
     setDoubtsState(getDoubts());
     setExpenses(db.getExpenses());
+    setUserAccounts(db.getUserAccounts());
   };
 
   const handleAddExpense = (e: React.FormEvent) => {
@@ -469,6 +474,9 @@ export default function AdminDashboardView() {
               { id: 'materials', label: 'Study Resources', icon: Download },
               { id: 'attendance', label: 'Mark Attendance', icon: CheckCircle2 },
               { id: 'marks', label: 'Test Results & Marks', icon: FileText },
+              { id: 'security', label: 'Security & Audit Logs', icon: ShieldCheck, isSecurity: true },
+              { id: 'users', label: `User Roles (${userAccounts.length})`, icon: KeyRound },
+              { id: 'backup', label: 'Backup & Recovery', icon: Database },
               { id: 'settings', label: 'CMS & Settings', icon: Settings },
             ].map(tab => {
               const IconComp = tab.icon;
@@ -484,12 +492,14 @@ export default function AdminDashboardView() {
                   }`}
                 >
                   <div className="flex items-center space-x-2.5">
-                    <IconComp className="w-4 h-4" />
+                    <IconComp className={`w-4 h-4 ${(tab as any).isSecurity ? 'text-emerald-400' : ''}`} />
                     <span>{tab.label}</span>
                   </div>
-                  {tab.badge && (
+                  {(tab as any).isSecurity ? (
+                    <span className="w-2 h-2 rounded-full bg-emerald-400" title="Protected & Monitored" />
+                  ) : tab.badge ? (
                     <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                  )}
+                  ) : null}
                 </button>
               );
             })}
@@ -524,9 +534,25 @@ export default function AdminDashboardView() {
           </div>
         </div>
 
-        <div className="pt-6 border-t border-slate-800 text-[11px] text-slate-400">
-          <div>Signed in as <strong>Admin</strong></div>
-          <a href="/" className="text-prime-orange hover:underline block mt-1">← Return to Main Website</a>
+        <div className="pt-6 border-t border-slate-800 text-[11px] text-slate-400 space-y-2">
+          <div className="flex items-center justify-between">
+            <div>Signed in as <strong>Admin</strong></div>
+            <span className="px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 text-[9px] font-bold border border-emerald-800">Edge Guard</span>
+          </div>
+          <button
+            onClick={async () => {
+              await fetch('/api/auth/logout', { method: 'POST' });
+              if (typeof window !== 'undefined') {
+                window.localStorage.removeItem('prime_learning_user_role');
+                window.localStorage.removeItem('prime_learning_user_email');
+              }
+              window.location.href = '/login';
+            }}
+            className="w-full py-1.5 px-3 rounded-lg bg-rose-950/60 border border-rose-900/80 hover:bg-rose-900 text-rose-300 font-bold text-[11px] transition text-center"
+          >
+            Lock Portal & Sign Out
+          </button>
+          <a href="/" className="text-prime-orange hover:underline block text-center mt-1">← Return to Main Website</a>
         </div>
       </aside>
 
@@ -1415,6 +1441,37 @@ export default function AdminDashboardView() {
                 <div className="px-4 py-2 bg-emerald-50 text-emerald-800 font-bold text-xs rounded-xl border border-emerald-200">
                   Total Collected: ₹{payments.reduce((acc, curr) => acc + (parseInt(curr.amount.replace(/[^0-9]/g, '')) || 0), 0).toLocaleString('en-IN')}
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const headers = ['Receipt No', 'Student Name', 'Grade', 'Amount', 'Payment Method', 'Month Paid For', 'Transaction ID', 'Payment Date', 'Status'];
+                    const rows = payments.map(p => [
+                      `"${p.receiptNo}"`,
+                      `"${p.studentName}"`,
+                      `"${p.grade}"`,
+                      `"${p.amount}"`,
+                      `"${p.paymentMethod}"`,
+                      `"${p.monthPaidFor || 'Current Term'}"`,
+                      `"${p.transactionId || 'OFFLINE'}"`,
+                      `"${p.paymentDate}"`,
+                      `"${p.status}"`
+                    ]);
+                    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+                    const link = document.createElement('a');
+                    link.setAttribute('href', encodeURI(csvContent));
+                    link.setAttribute('download', `prime_fee_ledger_${new Date().toISOString().split('T')[0]}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                    showToast('Fee Ledger CSV downloaded!');
+                  }}
+                  className="px-3.5 py-2 bg-slate-900 text-white font-bold text-xs rounded-xl hover:bg-slate-800 transition flex items-center space-x-1.5 shadow-sm"
+                  title="Export payments ledger as CSV"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Export CSV</span>
+                </button>
               </div>
             </div>
 
@@ -1929,6 +1986,28 @@ export default function AdminDashboardView() {
               </button>
             </form>
           </div>
+        )}
+
+        {/* TAB: SECURITY, ENCRYPTION & AUDIT LOGS */}
+        {activeTab === 'security' && (
+          <SecurityAuditTab showToast={showToast} />
+        )}
+
+        {/* TAB: USER ACCOUNTS & ACCESS CONTROL */}
+        {activeTab === 'users' && (
+          <UserManagementTab
+            userAccounts={userAccounts}
+            onUserUpdated={refreshData}
+            showToast={showToast}
+          />
+        )}
+
+        {/* TAB: BACKUP, DISASTER RECOVERY & LEDGERS */}
+        {activeTab === 'backup' && (
+          <BackupRestoreTab
+            onRefreshData={refreshData}
+            showToast={showToast}
+          />
         )}
 
         {/* MODALS */}
