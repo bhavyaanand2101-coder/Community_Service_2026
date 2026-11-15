@@ -8,28 +8,34 @@ const TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
  * Base64URL encode and decode helpers compatible with Edge & Node.js
  */
 function base64UrlEncode(str: string): string {
-  if (typeof btoa === 'function') {
-    return btoa(unescape(encodeURIComponent(str)))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '');
+  if (typeof Buffer !== 'undefined') {
+    return Buffer.from(str, 'utf-8').toString('base64url');
   }
-  return Buffer.from(str, 'utf-8')
-    .toString('base64')
+  const bytes = new TextEncoder().encode(str);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary)
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=+$/, '');
 }
 
 function base64UrlDecode(str: string): string {
+  if (typeof Buffer !== 'undefined') {
+    return Buffer.from(str, 'base64url').toString('utf-8');
+  }
   let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
   while (base64.length % 4) {
     base64 += '=';
   }
-  if (typeof atob === 'function') {
-    return decodeURIComponent(escape(atob(base64)));
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
   }
-  return Buffer.from(base64, 'base64').toString('utf-8');
+  return new TextDecoder().decode(bytes);
 }
 
 /**

@@ -104,10 +104,10 @@ function LoginForm() {
 
       setAuthSuccess(`Authenticated as ${loginResult.user.name} (${loginResult.user.role})! Redirecting...`);
 
+      const destination = redirectTarget || loginResult.redirectUrl;
       setTimeout(() => {
-        const destination = redirectTarget || loginResult.redirectUrl;
-        router.push(destination);
-      }, 500);
+        window.location.href = destination;
+      }, 300);
     } catch (err: any) {
       setAuthError(err.message || 'Login error occurred');
       setLoading(false);
@@ -143,9 +143,10 @@ function LoginForm() {
       });
 
       setAuthSuccess(`🔥 Firebase Auth verified! Logged in as ${role}. Redirecting...`);
+      const destination = redirectTarget || loginResult.redirectUrl;
       setTimeout(() => {
-        router.push(redirectTarget || loginResult.redirectUrl);
-      }, 500);
+        window.location.href = destination;
+      }, 300);
     } catch (err: any) {
       setAuthError(err.message || 'Firebase login failed');
       setLoading(false);
