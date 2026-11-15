@@ -15,6 +15,7 @@
 Small, independent educators form the backbone of grassroots supplementary education across residential communities in India. Despite possessing over a decade of teaching excellence and subject mastery, two local teachers in Sector-22B Gurgaon — **Praveen Gandhi** (Mathematics) and **Rashmi Anand** (Science) — faced stagnant student enrollments due to an exclusive reliance on traditional word-of-mouth promotion and a near-total lack of digital footprint.
 
 This Community Service Project was initiated to design, engineer, and deploy an end-to-end, zero-cost digital ecosystem. The solution encompasses:
+
 1. A modern, responsive web application for institutional visibility.
 2. Local Search Engine Optimization (SEO) and verified Google Business Profile setup.
 3. An interactive Marketing Toolkit with printable QR-coded promotional collateral.
@@ -28,11 +29,13 @@ By bridging the divide between high-quality neighborhood teaching and digital di
 ## 2. Problem Statement & Baseline Diagnosis
 
 ### 2.1 The Beneficiaries
+
 - **Praveen Gandhi:** M.Sc. in Mathematics, B.Ed., 12+ years of teaching experience specializing in CBSE Class 9–12 Mathematics and competitive foundations.
 - **Rashmi Anand:** M.Sc. in Organic Chemistry, B.Sc. (Hons), 10+ years of coaching experience for Class 6–10 General Science and Class 11–12 Chemistry.
 - **Location:** 948, Sector-22B, Near Anand Farm, Gurugram.
 
 ### 2.2 Core Challenges
+
 1. **Limited Online Visibility:** When parents and students in Sector 22B, Sector 21, Palam Vihar, and Dundahera searched for *"Maths tuition near me"* or *"Class 10 CBSE coaching Gurgaon"*, the center had zero presence on Google Maps or local search listings.
 2. **Underutilized Teaching Capacity:** Class batch sizes averaged 4–6 students against an optimal room capacity of 15 students, capping the teachers' income and community reach.
 3. **No Systematic Lead Follow-up:** Inquiries received through informal calls were often lost or recorded in physical diaries without follow-up tracking or demo class conversion metrics.
@@ -53,7 +56,7 @@ By bridging the divide between high-quality neighborhood teaching and digital di
 ## 4. Technical Architecture & Implementation Stack
 
 | Layer | Technologies Selected | Rationale |
-|---|---|---|
+| --- | --- | --- |
 | **Framework** | Next.js 15 (App Router), React 19 | High-performance Server-Side Rendering (SSR), SEO pre-rendering, dynamic routing. |
 | **Styling & Design** | Tailwind CSS 3.4, Vanilla CSS Utilities | Responsive mobile-first design system with educational color palette (Navy Blue, Prime Orange, Amber). |
 | **Language & Typings** | TypeScript 5.7 | Strict type safety for student records, batch schedules, fees, and lead pipelines. |
@@ -67,26 +70,31 @@ By bridging the divide between high-quality neighborhood teaching and digital di
 ## 5. Key Modules Developed
 
 ### 5.1 Public Institutional Portal
+
 - **Hero & Trust Metrics:** Dynamic statistics (500+ Students Mentored, 98% Board Pass Rate, 12+ Years Experience).
 - **Faculty Credentials:** Detailed teacher profiles, philosophy, educational qualifications, and verified student feedback.
 - **Course Catalog & Fee Transparency:** Transparent course listings with batch timings, syllabi coverage, and monthly fees.
 
 ### 5.2 Local Search & Google Business Profile (GBP) Studio (`/local-search`)
+
 - **Google 3-Pack Search Simulation:** Live visual preview of the center's Google Maps card for queries like *"Coaching near me Sec-22B"*.
 - **1-Click Parent Review Assistant:** Pre-configured 5-star review templates for Class 10, Class 12, and Foundation batches, allowing parents to copy tailored testimonials and post them directly to Google Maps.
 - **NAP Consistency Audit:** Real-time validation of Name, Address, and Phone consistency across search directories.
 
 ### 5.3 Marketing Studio & QR Printables Generator (`/marketing`)
+
 - **Live Flyer Customizer:** Dynamic template editor for Free Demo Passes, Board Booster Batches, and Reception Table Standees.
 - **Direct-Action QR Codes:** QR codes routing directly to trial registration, WhatsApp enquiry, and Google Maps review pages.
 - **Print Optimization:** CSS `@media print` rules enabling teachers to print standard A4 flyers and society bulletin notices straight from the browser.
 
 ### 5.4 Trial Class & Lead Conversion CRM (`/admin`)
+
 - **Trial Lifecycle Tracking:** Status progression (`Registered` → `Scheduled` → `Attended` → `Converted`).
 - **Digital Admit Card / Pass Modal:** Printable Free Trial Pass with barcode verification, student details, and orientation guidelines.
 - **1-Click WhatsApp Follow-up:** Instant dispatch of tailored feedback messages to parents post-demo class to drive final admissions.
 
 ### 5.5 Parent & Student Operations Portal (`/parent` & `/student`)
+
 - **CBSE Attendance Meter:** Visual attendance health indicator with warning thresholds (<75%).
 - **Digital Report Cards:** Class rank, test score distribution, and teacher remarks.
 - **Online Fee Ledger:** Downloadable fee slips and Razorpay UPI payment integration.
@@ -123,7 +131,7 @@ By bridging the divide between high-quality neighborhood teaching and digital di
 ## 7. Chronological Implementation Timeline
 
 | Date | Day | Milestone / Deliverable | Commit Reference |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | **Sep 5, 2026** | Saturday | Initial baseline setup, role session management, Firebase Auth sync, and gamified badges. | `aff782e`, `6cc2ff7` |
 | **Sep 6, 2026** | Sunday | Batch scoring system, absentee WhatsApp triggers, study material vault. | `c5eb9d2` |
 | **Sep 7, 2026** | Monday | AI Doubt Solver, CBSE Attendance Health Meter, and initial Admin CRM pipeline. | `94b96d5` |
@@ -157,9 +165,10 @@ During the deployment and testing phase across Sector-22B Gurgaon:
 
 ## 9. Conclusion & Teacher Handover Plan
 
-This Community Service Project successfully transformed the educational practice of Praveen Gandhi and Rashmi Anand from an invisible, word-of-mouth operation into a digitally empowered neighborhood coaching institution. 
+This Community Service Project successfully transformed the educational practice of Praveen Gandhi and Rashmi Anand from an invisible, word-of-mouth operation into a digitally empowered neighborhood coaching institution.
 
 The software has been handed over with:
+
 - A configured production environment template (`.env.example`).
 - Full local management capabilities for teachers on mobile and desktop devices.
 - Zero ongoing hosting costs leveraging Vercel, Supabase, and Firebase free tiers.
@@ -168,3 +177,10 @@ The software has been handed over with:
 ---
 
 *Report submitted in partial fulfillment of the requirements for the Community Service Project (Semester 3).*
+
+Default Credentials for Verification:
+
+Admin: Email <admin@primelearning.edu.in> | Password admin (Redirects to /admin)
+Teacher: Email <praveen@primelearning.edu.in> | Password teacher123 (Redirects to /teacher)
+Student: Phone 9876543210 / ID STU-2026-001 | Password student123 (Redirects to /student)
+Parent Portal: Phone 9876543210 | One-Time Passcode (OTP) verification (Redirects to /parent)

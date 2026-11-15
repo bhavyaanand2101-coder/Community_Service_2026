@@ -31,8 +31,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 
-# OS metadata
+# OS & editor metadata
 .DS_Store
+**/.DS_Store
 *.pem
 Screenshot*.png
 ~$*
+.kilo/
+*.tgz
+*.tar.gz
+*.tmp
+*.bak
