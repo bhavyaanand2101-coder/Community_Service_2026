@@ -98,12 +98,13 @@ export default function Hero({ onOpenTrialModal, onOpenEnquiryModal }: HeroProps
                 
                 {/* Header Logo Display inside Card */}
                 <div className="flex items-center justify-between pb-6 border-b border-slate-100">
-                  <div className="relative w-36 h-10">
+                  <div className="relative w-36 h-10 overflow-hidden shrink-0" style={{ maxWidth: '144px', maxHeight: '40px' }}>
                     <Image 
                       src="/logo-transparent.png" 
                       alt="Prime Learning Logo" 
-                      fill 
-                      className="object-contain object-left" 
+                      width={144}
+                      height={40}
+                      className="w-full h-full object-contain object-left" 
                     />
                   </div>
                   <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-emerald-100 text-emerald-800">
