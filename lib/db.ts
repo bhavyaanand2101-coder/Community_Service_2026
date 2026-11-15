@@ -716,7 +716,15 @@ export const db = {
 
   // Batches
   getBatches: (): Batch[] => {
-    return getStoredData('batches', MOCK_BATCHES);
+    const stored = getStoredData<Batch[]>('batches', MOCK_BATCHES);
+    const storedIds = new Set(stored.map(b => b.id));
+    const missing = MOCK_BATCHES.filter(m => !storedIds.has(m.id));
+    if (missing.length > 0) {
+      const merged = [...stored, ...missing];
+      setStoredData('batches', merged);
+      return merged;
+    }
+    return stored;
   },
   saveBatches: (batches: Batch[]): Batch[] => {
     setStoredData('batches', batches);
@@ -828,7 +836,16 @@ export const db = {
 
   // Students
   getStudents: (): Student[] => {
-    return getStoredData('students', MOCK_STUDENTS);
+    const stored = getStoredData<Student[]>('students', MOCK_STUDENTS);
+    // Auto-sync: automatically merge in any mock students that are not yet in stored cache
+    const storedIds = new Set(stored.map(s => s.id));
+    const missing = MOCK_STUDENTS.filter(m => !storedIds.has(m.id));
+    if (missing.length > 0) {
+      const merged = [...stored, ...missing];
+      setStoredData('students', merged);
+      return merged;
+    }
+    return stored;
   },
   saveStudents: (students: Student[]): Student[] => {
     setStoredData('students', students);
@@ -864,7 +881,15 @@ export const db = {
 
   // Attendance
   getAttendance: (): AttendanceRecord[] => {
-    return getStoredData('attendance', MOCK_ATTENDANCE);
+    const stored = getStoredData<AttendanceRecord[]>('attendance', MOCK_ATTENDANCE);
+    const storedIds = new Set(stored.map(a => a.id));
+    const missing = MOCK_ATTENDANCE.filter(m => !storedIds.has(m.id));
+    if (missing.length > 0) {
+      const merged = [...stored, ...missing];
+      setStoredData('attendance', merged);
+      return merged;
+    }
+    return stored;
   },
   recordAttendance: (records: Omit<AttendanceRecord, 'id'>[]): AttendanceRecord[] => {
     const current = getStoredData<AttendanceRecord[]>('attendance', MOCK_ATTENDANCE);
@@ -919,7 +944,15 @@ export const db = {
 
   // Test Results
   getTestResults: (): TestResult[] => {
-    return getStoredData('test_results', MOCK_TEST_RESULTS);
+    const stored = getStoredData<TestResult[]>('test_results', MOCK_TEST_RESULTS);
+    const storedIds = new Set(stored.map(t => t.id));
+    const missing = MOCK_TEST_RESULTS.filter(m => !storedIds.has(m.id));
+    if (missing.length > 0) {
+      const merged = [...stored, ...missing];
+      setStoredData('test_results', merged);
+      return merged;
+    }
+    return stored;
   },
   addTestResult: (res: Omit<TestResult, 'id' | 'percentage'>): TestResult => {
     const current = getStoredData<TestResult[]>('test_results', MOCK_TEST_RESULTS);
@@ -1300,7 +1333,7 @@ export const db = {
 
   // User Accounts
   getUserAccounts: (): UserAccount[] => {
-    return getStoredData('user_accounts', [
+    const defaultAccounts: UserAccount[] = [
       { id: 'usr-admin', email: 'admin@primelearning.edu.in', phone: '9810989437', password: 'admin', name: 'Admin Coordinator', role: 'ADMIN', createdAt: '2026-09-01' },
       { id: 'usr-teacher-1', email: 'praveen@primelearning.edu.in', phone: '9810989438', password: 'teacher123', name: 'Praveen Gandhi', role: 'TEACHER', associatedId: 'teacher-praveen', createdAt: '2026-09-01' },
       { id: 'usr-teacher-2', email: 'rashmi@primelearning.edu.in', phone: '9810989439', password: 'teacher123', name: 'Rashmi Anand', role: 'TEACHER', associatedId: 'teacher-rashmi', createdAt: '2026-09-01' },
@@ -1331,7 +1364,16 @@ export const db = {
       { id: 'usr-parent-12', email: 'amit.singhal@gmail.com', phone: '9899900112', password: 'parent123', name: 'Amit Singhal (Parent)', role: 'PARENT', associatedId: 'std-12', createdAt: '2026-09-01' },
       { id: 'usr-student-13', email: 'sanya.kapoor@primelearning.edu.in', phone: '9910011223', password: 'student123', name: 'Sanya Kapoor', role: 'STUDENT', associatedId: 'std-13', createdAt: '2026-09-01' },
       { id: 'usr-parent-13', email: 'deepak.kapoor@gmail.com', phone: '9910011223', password: 'parent123', name: 'Deepak Kapoor (Parent)', role: 'PARENT', associatedId: 'std-13', createdAt: '2026-09-01' },
-    ]);
+    ];
+    const stored = getStoredData<UserAccount[]>('user_accounts', defaultAccounts);
+    const storedEmails = new Set(stored.map(u => u.email.toLowerCase()));
+    const missing = defaultAccounts.filter(a => !storedEmails.has(a.email.toLowerCase()));
+    if (missing.length > 0) {
+      const merged = [...stored, ...missing];
+      setStoredData('user_accounts', merged);
+      return merged;
+    }
+    return stored;
   },
   saveUserAccount: (account: Omit<UserAccount, 'id' | 'createdAt'>): UserAccount => {
     const current = db.getUserAccounts();

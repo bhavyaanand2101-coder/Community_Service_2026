@@ -480,7 +480,7 @@ export default function TeacherDashboardView() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {(currentBatchStudents.length > 0 ? currentBatchStudents : students.slice(0, 5)).map(s => {
+                        {(currentBatchStudents.length > 0 ? currentBatchStudents : students).map(s => {
                           const val = batchMarks[s.id] !== undefined ? batchMarks[s.id] : 40;
                           const pct = Math.round((val / batchTestConfig.maxMarks) * 100);
                           return (

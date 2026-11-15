@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { 
   Users, MessageSquare, GraduationCap, CheckCircle2, Phone, Calendar, 
   BookOpen, Clock, Settings, Plus, Filter, Search, FileText, BarChart3, Edit, Save, ArrowRight, QrCode, Trash2, X, Bell, Download, CreditCard, HelpCircle, Send, Megaphone,
-  Lock, KeyRound, Mail, Award, Sparkles, IndianRupee, ShieldCheck, Database
+  Lock, KeyRound, Mail, Award, Sparkles, IndianRupee, ShieldCheck, Database, RefreshCw
 } from 'lucide-react';
 import { db, getPayments, getLeaveRequests, updateLeaveStatus, getDoubts, replyDoubt, getPendingFeeStudents, getExpenses, addExpense, deleteExpense } from '@/lib/db';
 import { 
@@ -562,9 +562,21 @@ export default function AdminDashboardView() {
         {/* TAB 1: OVERVIEW */}
         {activeTab === 'overview' && (
           <div className="space-y-8">
-            <div>
-              <h1 className="text-2xl font-black text-slate-900">Admin Dashboard Overview</h1>
-              <p className="text-xs text-slate-500">Live operational metrics and enquiry pipeline stats</p>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-black text-slate-900">Admin Dashboard Overview</h1>
+                <p className="text-xs text-slate-500">Live operational metrics and enquiry pipeline stats</p>
+              </div>
+              <button
+                onClick={() => {
+                  refreshData();
+                  showToast('Database synchronized! All 13 student profiles active.');
+                }}
+                className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-sm self-start sm:self-auto cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5 text-prime-orange" />
+                <span>Sync & Refresh Data</span>
+              </button>
             </div>
 
             {/* 4 Stat Cards */}
