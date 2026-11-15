@@ -33,8 +33,16 @@ export async function POST(req: NextRequest) {
     // 1. Find matching enrolled student
     const allStudents = db.getStudents();
     const student = allStudents.find(s => {
-      const matchPhone = cleanPhone && s.phone.replace(/[^0-9]/g, '') === cleanPhone;
-      const matchEmail = cleanEmail && s.email && s.email.toLowerCase() === cleanEmail;
+      const sPhoneDigits = s.phone.replace(/[^0-9]/g, '');
+      const sWaDigits = (s.whatsapp || '').replace(/[^0-9]/g, '');
+      const matchPhone = Boolean(
+        cleanPhone && (
+          sPhoneDigits.endsWith(cleanPhone) || 
+          sWaDigits.endsWith(cleanPhone) || 
+          cleanPhone.endsWith(sPhoneDigits)
+        )
+      );
+      const matchEmail = Boolean(cleanEmail && s.email && s.email.toLowerCase() === cleanEmail);
       return matchPhone || matchEmail;
     });
 
@@ -98,6 +106,13 @@ export async function POST(req: NextRequest) {
       const response = NextResponse.json({
         success: true,
         message: 'Parent identity verified successfully',
+        redirectUrl: '/parent',
+        user: {
+          id: `usr-parent-${student.id}`,
+          name: student.parentName || 'Parent / Guardian',
+          role: 'PARENT',
+          phone: student.phone,
+        },
         student: {
           id: student.id,
           name: student.studentName,
