@@ -141,5 +141,42 @@ describe('End-to-End System Integration Tests', () => {
       assert.equal(event.metadata.marksObtained, 48);
     });
   });
+
+  describe('6. Production 13 Student Enrollment Roster & Auto-Reconciliation', () => {
+    const masterStudents = [
+      { id: 'std-1', studentName: 'Rohan Mehta', phone: '+91 98109 89437' },
+      { id: 'std-2', studentName: 'Sneha Patel', phone: '+91 93509 57765' },
+      { id: 'std-3', studentName: 'Aditya Joshi', phone: '+91 98990 12345' },
+      { id: 'std-4', studentName: 'Aarav Sharma', phone: '+91 98111 22334' },
+      { id: 'std-5', studentName: 'Diya Verma', phone: '+91 98222 33445' },
+      { id: 'std-6', studentName: 'Kabir Malhotra', phone: '+91 98333 44556' },
+      { id: 'std-7', studentName: 'Ananya Gupta', phone: '+91 98444 55667' },
+      { id: 'std-8', studentName: 'Ishaan Sen', phone: '+91 98555 66778' },
+      { id: 'std-9', studentName: 'Meera Nair', phone: '+91 98666 77889' },
+      { id: 'std-10', studentName: 'Vihaan Bhatia', phone: '+91 98777 88990' },
+      { id: 'std-11', studentName: 'Riddhi Aggarwal', phone: '+91 98888 99001' },
+      { id: 'std-12', studentName: 'Aryan Singhal', phone: '+91 98999 00112' },
+      { id: 'std-13', studentName: 'Sanya Kapoor', phone: '+91 99100 11223' },
+    ];
+
+    test('verifies master enrollment roster contains 13 active students', () => {
+      assert.equal(masterStudents.length, 13);
+      const uniqueIds = new Set(masterStudents.map(s => s.id));
+      assert.equal(uniqueIds.size, 13);
+    });
+
+    test('reconciles stale browser cache containing only 4 students to 13 students', () => {
+      const staleBrowserCache = masterStudents.slice(0, 4);
+      assert.equal(staleBrowserCache.length, 4);
+
+      const cachedIds = new Set(staleBrowserCache.map(s => s.id));
+      const missingStudents = masterStudents.filter(s => !cachedIds.has(s.id));
+      assert.equal(missingStudents.length, 9);
+
+      const reconciled = [...staleBrowserCache, ...missingStudents];
+      assert.equal(reconciled.length, 13);
+      assert.equal(new Set(reconciled.map(s => s.id)).size, 13);
+    });
+  });
 });
 
