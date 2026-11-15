@@ -178,9 +178,29 @@ The software has been handed over with:
 
 *Report submitted in partial fulfillment of the requirements for the Community Service Project (Semester 3).*
 
-Default Credentials for Verification:
+### Comprehensive Production Credentials & Student Roster:
 
-Admin: Email <admin@primelearning.edu.in> | Password admin (Redirects to /admin)
-Teacher: Email <praveen@primelearning.edu.in> | Password teacher123 (Redirects to /teacher)
-Student: Phone 9876543210 / ID STU-2026-001 | Password student123 (Redirects to /student)
-Parent Portal: Phone 9876543210 | One-Time Passcode (OTP) verification (Redirects to /parent)
+#### 1. Core Staff Credentials
+| Role | Name | Email / Phone | Password | Target Dashboard |
+| :--- | :--- | :--- | :--- | :--- |
+| **Admin Coordinator** | Superuser Admin | `admin@primelearning.edu.in` / `9810989437` | `admin` | `/admin` |
+| **Faculty Lead (Maths)** | Praveen Gandhi | `praveen@primelearning.edu.in` / `9810989438` | `teacher123` | `/teacher` |
+| **Faculty Lead (Science)** | Rashmi Anand | `rashmi@primelearning.edu.in` / `9810989439` | `teacher123` | `/teacher` |
+
+#### 2. All 13 Enrolled Students & Parent Quick-Access
+| # | Student ID | Student Name | Class / Batch | Parent Name | Registered Phone | Student Email | Password / OTP |
+| :-: | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 1 | `std-1` | Rohan Mehta | Class 10 Combo | Sunil Mehta | `9810989437` | `student@primelearning.edu.in` | `student123` / `123456` |
+| 2 | `std-2` | Sneha Patel | Class 12 Maths | Kiran Patel | `9350957765` | `sneha.patel@primelearning.edu.in` | `student123` / `123456` |
+| 3 | `std-3` | Aditya Joshi | Class 4 Primary | Vikram Joshi | `9899012345` | `aditya.joshi@primelearning.edu.in` | `student123` / `123456` |
+| 4 | `std-4` | Aarav Sharma | Class 10 Combo | Ramesh Sharma | `9811122334` | `aarav.sharma@primelearning.edu.in` | `student123` / `123456` |
+| 5 | `std-5` | Diya Verma | Class 10 Combo | Alok Verma | `9822233445` | `diya.verma@primelearning.edu.in` | `student123` / `123456` |
+| 6 | `std-6` | Kabir Malhotra | Class 12 Maths | Rajesh Malhotra | `9833344556` | `kabir.malhotra@primelearning.edu.in` | `student123` / `123456` |
+| 7 | `std-7` | Ananya Gupta | Class 12 Maths | Sanjeev Gupta | `9844455667` | `ananya.gupta@primelearning.edu.in` | `student123` / `123456` |
+| 8 | `std-8` | Ishaan Sen | Class 11 Maths | Debashis Sen | `9855566778` | `ishaan.sen@primelearning.edu.in` | `student123` / `123456` |
+| 9 | `std-9` | Meera Nair | Class 11 Maths | Venugopal Nair | `9866677889` | `meera.nair@primelearning.edu.in` | `student123` / `123456` |
+| 10 | `std-10` | Vihaan Bhatia | Class 9 Combo | Gaurav Bhatia | `9877788990` | `vihaan.bhatia@primelearning.edu.in` | `student123` / `123456` |
+| 11 | `std-11` | Riddhi Aggarwal | Class 9 Combo | Manish Aggarwal | `9888899001` | `riddhi.aggarwal@primelearning.edu.in` | `student123` / `123456` |
+| 12 | `std-12` | Aryan Singhal | Class 8 Combo | Amit Singhal | `9899900112` | `aryan.singhal@primelearning.edu.in` | `student123` / `123456` |
+| 13 | `std-13` | Sanya Kapoor | Class 10 Combo | Deepak Kapoor | `9910011223` | `sanya.kapoor@primelearning.edu.in` | `student123` / `123456` |
+
